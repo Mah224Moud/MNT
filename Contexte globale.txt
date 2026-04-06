@@ -1,0 +1,67 @@
+GED — Gestion Électronique de Documents
+
+C'est un système qui stocke, organise et met à disposition des documents numériques. Dans le contexte MNT c'est l'endroit où atterrissent tous les documents produits — contrats, cartes adhérents, courriers — pour que les gestionnaires et les adhérents puissent y accéder via leur espace en ligne.
+
+Concrètement : Perl traite le flux → LaTeX génère le PDF → le PDF est déposé dans le GED.
+
+La balance carrée
+
+C'est un principe comptable appliqué à la data. L'idée : ce qui entre doit correspondre à ce qui sort. Si t'as un écart, t'as un problème quelque part.
+
+En comptabilité : débit = crédit. En éditique : flux reçus = documents produits = documents déposés dans le GED.
+
+Schéma
+
+ENTRÉE                    TRAITEMENT                  SORTIE
+
+─────────────────────────────────────────────────────────────
+
+Flux back-office
+
+(contrats, adhésions)  →   Perl + LaTeX        →   GED
+
+                                                    (documents
+
+ex: 1400 flux reçus         1400 traitements        disponibles)
+
+        ↓ BALANCE CARRÉE ↓
+
+    Flux reçus     =     Documents produits    =    Docs dans GED
+
+       1400                   1200                     1200
+
+              ⚠️ ÉCART DÉTECTÉ : 200 flux non traités
+
+                        → Où est le problème ?
+
+Pourquoi c'est puissant
+
+Aujourd'hui à la MNT personne ne sait répondre à "on a reçu 1400 flux ce matin, est-ce qu'on a bien produit 1400 documents ?" en temps réel. Ton job c'est de rendre ça visible automatiquement, chaque jour, sans que quelqu'un aille chercher manuellement dans 3 systèmes différents.
+
+Bonne initiative de préparer day 1. On y va.
+
+Leur vrai problème
+
+Ils n'ont pas de visibilité de bout en bout sur le processus éditique. Ils savent ce que le moteur reçoit, ils savent ce qui est dans le GED, mais entre les deux c'est le flou. Quand ça casse, ils l'apprennent souvent par les utilisateurs, parfois 1-2 mois après.
+
+La solution logique
+
+En deux phases :
+
+Phase 1 — la balance carrée Construire un système de réconciliation qui compare flux entrants vs documents produits vs documents déposés dans le GED. L'objectif c'est simple : entrées = sorties, sinon on sait où chercher.
+
+Techniquement : récupérer les données depuis la base de tracking SQL existante + les logs Kibana déjà en place, les consolider, et produire un dashboard de supervision. Grafana est déjà là, c'est l'outil à utiliser en priorité.
+
+Phase 2 — la supervision continue Une fois la balance carrée en place, automatiser des alertes sur les écarts et construire des vues différenciées — une vue technique pour l'équipe, une vue simplifiée pour le métier et les décideurs.
+
+Ce que tu devrais bosser avant day 1
+
+Grafana — c'est l'outil central qu'ils utilisent déjà. T'as jamais touché, faut combler ça. Comprendre comment connecter une source de données SQL, créer un dashboard basique, configurer une alerte. Une journée de tuto suffit pour les bases.
+
+Les flux à plat et XML en Perl — on a bossé la syntaxe, mais entraîne-toi à parser un fichier CSV et un XML simple en Perl. C'est exactement ce que tu feras.
+
+SQL sur PostgreSQL/MySQL — les requêtes d'agrégation : GROUP BY, COUNT, SUM, jointures. C'est ce que tu utiliseras pour interroger leur base de tracking.
+
+Kibana basique — ils ont des logs dedans, faut savoir naviguer et faire une recherche simple. 30 minutes suffisent.
+
+La priorité absolue c'est Grafana. C'est le seul outil de leur stack que t'as jamais utilisé et c'est celui sur lequel tu seras attendu dès le début.

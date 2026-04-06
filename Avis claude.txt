@@ -1,0 +1,36 @@
+Ce que le transcript révèle vraiment
+1. La stack technique confirmée
+Guillaume l'explique clairement : les flux du back-office (outil appelé Infini) arrivent en format plat à structure fixe + CSV + XML pour les APIs. Perl lit tout ça, enrichit les données (exemple : il va chercher l'email de l'adhérent qui n'est pas dans le flux), puis LaTeX génère le PDF + un fichier IDX (un CSV de métadonnées) qui est déposé en GED avec le PDF.
+2. Les deux sources de données qui existent déjà
+Gregory dit quelque chose de précis : "on a une base qui journalise les traitements qu'on appelle la base de tracking — c'est une base SQL". Et il dit aussi que la GED remonte des infos quand les documents sont remis en poste.
+Donc la BD tracking existe déjà partiellement — elle trace ce que le moteur reçoit et traite. Mais elle ne capture pas ce qui n'entre jamais dans le moteur. C'est là le vrai trou.
+3. Le vrai problème précis
+Gregory dit mot pour mot : "on a entre 40 et 60% des incidents qui sont liés aux entrants". Ce qui arrive dans le moteur est déjà partiellement tracé. Ce qui n'arrive pas ne l'est jamais. Donc le problème c'est :
+Back-office dit "j'ai envoyé 1400"
+Moteur dit     "j'en ai reçu 1200"
+→ les 200 manquants : personne ne sait où ils sont restés bloqués
+4. La complexité supplémentaire : les dates
+Guillaume soulève un point crucial que j'avais pas mis dans notre architecture : les dates sont décalées. Un gestionnaire fait une demande le lundi, le document est édité le mercredi, remis en poste le vendredi. Comparer des chiffres jour par jour va créer des faux écarts. La balance carrée doit tenir compte de ces décalages temporels.
+5. Deux vues attendues, pas une
+Gregory est explicite là-dessus : il faut une vue technique pour l'équipe (les logs, les détails, les erreurs) et une vue métier simplifiée pour les décideurs (juste : on a reçu X, on a produit Y, il manque Z). Grafana devra avoir deux dashboards distincts.
+6. Les documents critiques à surveiller en priorité
+Certains documents ont une priorité absolue — ils doivent partir en courrier physique : les courriers d'adhésion (permettent d'activer l'espace en ligne), les courriers d'indus, les relances. La balance carrée doit les surveiller spécifiquement, pas juste compter en masse.
+
+Ce que ça change dans notre architecture
+Notre plan de base était bon, mais voilà les ajustements :
+AVANT (notre plan)          APRÈS (transcript)
+──────────────────          ──────────────────
+Créer la BD tracking    →   Étendre la BD existante
+                            + ajouter le bout amont
+                            (ce que back-office envoie)
+
+Une vue Grafana         →   Deux vues :
+                            vue technique (équipe)
+                            vue métier (décideurs)
+
+Balance simple          →   Balance avec fenêtre
+flux reçus = docs GED       temporelle (décalages)
+
+Tous les flux pareils   →   Docs critiques flaggués
+                            (indus, adhésion, relances)
+                            → alertes prioritaires
